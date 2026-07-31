@@ -687,11 +687,11 @@ local AutoGiftToggle = MainTab:Toggle({
                                     
                                     if matchRarity and matchMutation then
                                         hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
-                                        task.wait(0.4)
+                                        task.wait(0.5) -- เพิ่มเวลารอให้ยืนตำแหน่งนิ่งขึ้น
                                         
                                         if character and character:FindFirstChild("Humanoid") then
                                             character.Humanoid:EquipTool(tool)
-                                            task.wait(0.4)
+                                            task.wait(0.5) -- เพิ่มเวลารอให้หยิบไอเทมขึ้นมาพร้อมส่ง
                                         end
                                         
                                         local fired = false
@@ -733,7 +733,9 @@ local AutoGiftToggle = MainTab:Toggle({
                                         
                                         getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
                                         
-                                        task.wait(1.0)
+                                        -- ปรับเพิ่มเวลารอหลังกดส่ง (จากเดิม 1.0 เป็น 2.5 วินาที) 
+                                        -- เพื่อป้องกันไม่ให้สคริปต์สลับเปลี่ยนการ์ดเร็วเกินไปในกรณีที่ผู้รับกดรับช้า
+                                        task.wait(2.5) 
                                         break
                                     end
                                 end
