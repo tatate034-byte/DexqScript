@@ -519,7 +519,7 @@ local AutoSellBoxToggle = MainTab:Toggle({
 })
 
 -- ==============================================================
--- 🚀 AUTO GIFT SYSTEM (Sender & Receiver Auto Accept + Input Max Limit)
+-- 🚀 AUTO GIFT SYSTEM (Fast Warp/Equip + Dynamic Wait on Accept)
 -- ==============================================================
 
 getgenv().GiftTargetPlayer = ""
@@ -686,12 +686,14 @@ local AutoGiftToggle = MainTab:Toggle({
                                     local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
                                     
                                     if matchRarity and matchMutation then
+                                        -- วาปไวขึ้น
                                         hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
-                                        task.wait(0.5) -- เพิ่มเวลารอให้ยืนตำแหน่งนิ่งขึ้น
+                                        task.wait(0.1) 
                                         
+                                        -- หยิบไอเทมไวขึ้น
                                         if character and character:FindFirstChild("Humanoid") then
                                             character.Humanoid:EquipTool(tool)
-                                            task.wait(0.5) -- เพิ่มเวลารอให้หยิบไอเทมขึ้นมาพร้อมส่ง
+                                            task.wait(0.15) 
                                         end
                                         
                                         local fired = false
@@ -717,7 +719,7 @@ local AutoGiftToggle = MainTab:Toggle({
                                             for _, desc in ipairs(targetChar:GetDescendants()) do
                                                 if desc:IsA("ProximityPrompt") then
                                                     triggerPrompt(desc)
-                                                    task.wait(0.1)
+                                                    task.wait(0.05)
                                                 end
                                             end
                                         end
@@ -726,23 +728,37 @@ local AutoGiftToggle = MainTab:Toggle({
                                             for _, desc in ipairs(tool:GetDescendants()) do
                                                 if desc:IsA("ProximityPrompt") then
                                                     triggerPrompt(desc)
-                                                    task.wait(0.1)
+                                                    task.wait(0.05)
                                                 end
                                             end
                                         end
                                         
                                         getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
                                         
-                                        -- ปรับเพิ่มเวลารอหลังกดส่ง (จากเดิม 1.0 เป็น 2.5 วินาที) 
-                                        -- เพื่อป้องกันไม่ให้สคริปต์สลับเปลี่ยนการ์ดเร็วเกินไปในกรณีที่ผู้รับกดรับช้า
-                                        task.wait(2.5) 
+                                        -- ระบบรอแบบ Dynamic: เช็คว่าถ้าไอเทมถูกส่งออกจากตัวแล้ว (หรืออีกฝ่ายกดรับแล้ว) ให้ข้ามไปชิ้นถัดไปได้ทันที
+                                        local maxWait = 2.5
+                                        local elapsedWait = 0
+                                        while getgenv().AutoGiftCards and elapsedWait < maxWait do
+                                            task.wait(0.1)
+                                            elapsedWait = elapsedWait + 0.1
+                                            
+                                            local stillExists = false
+                                            if tool.Parent == backpack or (character and tool.Parent == character) then
+                                                stillExists = true
+                                            end
+                                            
+                                            if not stillExists then
+                                                break
+                                            end
+                                        end
+                                        
                                         break
                                     end
                                 end
                             end
                         end)
                     end
-                    task.wait(1)
+                    task.wait(0.2)
                 end
             end)
         end
