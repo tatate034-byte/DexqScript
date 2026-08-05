@@ -707,7 +707,6 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     local isBoxOrPack = string.find(toolNameLower, "box") or string.find(toolNameLower, "pack") or rAttrLower == "box" or rAttrLower == "pack" or tool:GetAttribute("BoxValue") ~= nil
                                     if isBoxOrPack then continue end
                                     
-                                    -- [ระบบเช็คและบล็อก Evolution เด็ดขาดถ้าไม่ได้เลือก Evolved ไว้]
                                     local isEvolutionCard = string.find(toolNameLower, "evolution") or string.find(toolNameLower, "evolved")
                                     local combinedTextForCheck = toolNameLower .. " " .. rAttrLower
                                     for _, desc in ipairs(tool:GetDescendants()) do
@@ -722,7 +721,7 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     
                                     local evoSelected = getgenv().GiftSelectedRarities["evolution"] or getgenv().GiftSelectedRarities["evolved"]
                                     if isEvolutionCard and not evoSelected then
-                                        continue -- ข้ามการ์ด Evolution ทันทีถ้าไม่ได้ติ๊กเลือกไว้
+                                        continue 
                                     end
                                     
                                     local cardRarity = ""
@@ -824,7 +823,7 @@ local AutoGiftCardsToggle = MainTab:Toggle({
     end
 })
 
-MainTab:Paragraph({ Title = "--- Pack Gifting Settings ---", Content = "Configure specific pack rarities to gift (Packs only)." })
+MainTab:Paragraph({ Title = "--- Pack Gifting Settings ---", Content = "Configure specific pack rarities and mutations to gift (Packs only)." })
 
 getgenv().GiftSelectedPacks = {}
 local GiftPackRarityDropdown = MainTab:Dropdown({
@@ -844,6 +843,28 @@ local GiftPackRarityDropdown = MainTab:Dropdown({
             end
         elseif type(value) == "string" then
             getgenv().GiftSelectedPacks[string.lower(value)] = true
+        end
+    end
+})
+
+getgenv().GiftSelectedPackMutations = {}
+local GiftPackMutationDropdown = MainTab:Dropdown({
+    Title = "Select Pack Mutations to Gift",
+    Multi = true,
+    Values = MutationsList,
+    Value = {},
+    Callback = function(value)
+        getgenv().GiftSelectedPackMutations = {}
+        if type(value) == "table" then
+            for k, v in pairs(value) do
+                if type(k) == "number" then
+                    getgenv().GiftSelectedPackMutations[string.lower(tostring(v))] = true
+                else
+                    getgenv().GiftSelectedPackMutations[string.lower(tostring(k))] = v
+                end
+            end
+        elseif type(value) == "string" then
+            getgenv().GiftSelectedPackMutations[string.lower(value)] = true
         end
     end
 })
@@ -892,6 +913,8 @@ local AutoGiftPacksToggle = MainTab:Toggle({
                                     
                                     local toolNameLower = string.lower(tool.Name)
                                     local rAttrLower = string.lower(tool:GetAttribute("Rarity") or "")
+                                    local mutationAttr = string.lower(tool:GetAttribute("Mutation") or "")
+                                    
                                     local isPack = string.find(toolNameLower, "pack") or rAttrLower == "pack"
                                     if not isPack then continue end
                                     
@@ -905,9 +928,21 @@ local AutoGiftPacksToggle = MainTab:Toggle({
                                         end
                                     end
                                     
-                                    local matchPack = (next(getgenv().GiftSelectedPacks) == nil) or getgenv().GiftSelectedPacks[packRarity]
+                                    local packMutation = mutationAttr
+                                    if packMutation == "" or packMutation == "normal" then
+                                        for _, mName in ipairs(MutationsList) do
+                                            if string.find(toolNameLower, string.lower(mName)) then
+                                                packMutation = string.lower(mName)
+                                                break
+                                            end
+                                        end
+                                    end
+                                    if packMutation == "" then packMutation = "normal" end
                                     
-                                    if matchPack then
+                                    local matchPackRarity = (next(getgenv().GiftSelectedPacks) == nil) or getgenv().GiftSelectedPacks[packRarity]
+                                    local matchPackMutation = (next(getgenv().GiftSelectedPackMutations) == nil) or getgenv().GiftSelectedPackMutations[packMutation]
+                                    
+                                    if matchPackRarity and matchPackMutation then
                                         hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
                                         task.wait(0.1) 
                                         
@@ -1264,6 +1299,7 @@ local function SaveConfig(name)
         GiftRarities = getgenv().GiftSelectedRarities or {},
         GiftMutations = getgenv().GiftSelectedMutations or {},
         GiftPacks = getgenv().GiftSelectedPacks or {},
+        GiftPackMutations = getgenv().GiftSelectedPackMutations or {},
         AutoGiftCards = getgenv().AutoGiftCardsState or false,
         AutoGiftPacks = getgenv().AutoGiftPacksState or false,
         AutoAccept = getgenv().AutoAcceptGift or false,
@@ -1290,6 +1326,7 @@ local function LoadConfig(name)
             getgenv().GiftSelectedRarities = data.GiftRarities or {}
             getgenv().GiftSelectedMutations = data.GiftMutations or {}
             getgenv().GiftSelectedPacks = data.GiftPacks or {}
+            getgenv().GiftSelectedPackMutations = data.GiftPackMutations or {}
             getgenv().MaxGiftLimit = data.MaxGiftLimit or "0"
             
             pcall(function()
@@ -1375,6 +1412,16 @@ local function LoadConfig(name)
                     end
                 end
                 pcall(function() GiftPackRarityDropdown:SetValue(gArrP) end)
+            end
+
+            if GiftPackMutationDropdown then
+                local gArrPM = {}
+                for _, v in ipairs(MutationsList) do
+                    if getgenv().GiftSelectedPackMutations[string.lower(v)] then
+                        table.insert(gArrPM, v)
+                    end
+                end
+                pcall(function() GiftPackMutationDropdown:SetValue(gArrPM) end)
             end
             
             WindUI:Notify({ Title = "Config", Content = "Loaded config: " .. name, Duration = 3 })
