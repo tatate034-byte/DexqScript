@@ -193,18 +193,46 @@ local function GetAllInventorySummary()
         if not folder then return end
         for _, item in ipairs(folder:GetChildren()) do
             if item:IsA("Tool") then
-                local rarityAttr = item:GetAttribute("Rarity")
-                local cardNameAttr = item:GetAttribute("CardName")
-                local groupKey = rarityAttr or cardNameAttr or item.Name
+                local toolName = item.Name
+                local rarityAttr = item:GetAttribute("Rarity") or ""
+                local mutationAttr = item:GetAttribute("Mutation") or ""
                 
-                if not item:GetAttribute("Rarity") and item:FindFirstChild("Rarity") and item.Rarity:IsA("StringValue") then
-                    groupKey = item.Rarity.Value
+                local groupKey = rarityAttr
+                if groupKey == "" then
+                    for _, rName in ipairs(RaritiesList) do
+                        if string.find(string.lower(toolName), string.lower(rName)) then
+                            groupKey = rName
+                            break
+                        end
+                    end
+                end
+                if groupKey == "" then groupKey = toolName end
+                
+                local mutation = mutationAttr
+                if mutation == "" or mutation == "Normal" then
+                    for _, mName in ipairs(MutationsList) do
+                        if string.find(string.lower(toolName), string.lower(mName)) then
+                            mutation = mName
+                            break
+                        end
+                    end
                 end
                 
-                local mutation = item:GetAttribute("Mutation") or "Normal"
-                if not item:GetAttribute("Mutation") and item:FindFirstChild("Mutation") and item.Mutation:IsA("StringValue") then
-                    mutation = item.Mutation.Value
+                if mutation == "" or mutation == "Normal" then
+                    for _, desc in ipairs(item:GetDescendants()) do
+                        if desc:IsA("TextLabel") then
+                            local tLower = string.lower(desc.Text)
+                            for _, mName in ipairs(MutationsList) do
+                                if string.find(tLower, string.lower(mName)) then
+                                    mutation = mName
+                                    break
+                                end
+                            end
+                        end
+                    end
                 end
+                
+                if mutation == "" then mutation = "Normal" end
                 
                 if not inventory[groupKey] then
                     inventory[groupKey] = {}
@@ -677,18 +705,66 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     local isBoxOrPack = string.find(toolNameLower, "box") or string.find(toolNameLower, "pack") or rAttrLower == "box" or rAttrLower == "pack" or tool:GetAttribute("BoxValue") ~= nil
                                     if isBoxOrPack then continue end
                                     
-                                    local cardRarity = string.lower(tool:GetAttribute("Rarity") or "")
-                                    local cardMutation = string.lower(tool:GetAttribute("Mutation") or "normal")
-                                    
+                                    local cardRarity = rAttrLower
                                     if cardRarity == "" and tool:FindFirstChild("Rarity") and tool.Rarity:IsA("StringValue") then
                                         cardRarity = string.lower(tool.Rarity.Value)
                                     end
-                                    if cardMutation == "normal" and tool:FindFirstChild("Mutation") and tool.Mutation:IsA("StringValue") then
+                                    if cardRarity == "" then
+                                        for _, rName in ipairs(RaritiesList) do
+                                            if string.find(toolNameLower, string.lower(rName)) then
+                                                cardRarity = string.lower(rName)
+                                                break
+                                            end
+                                        end
+                                    end
+                                    
+                                    local cardMutation = string.lower(tool:GetAttribute("Mutation") or "")
+                                    if cardMutation == "" and tool:FindFirstChild("Mutation") and tool.Mutation:IsA("StringValue") then
                                         cardMutation = string.lower(tool.Mutation.Value)
                                     end
+                                    if cardMutation == "" then
+                                        for _, mName in ipairs(MutationsList) do
+                                            if string.find(toolNameLower, string.lower(mName)) then
+                                                cardMutation = string.lower(mName)
+                                                break
+                                            end
+                                        end
+                                    end
+                                    if cardMutation == "" or cardMutation == "normal" then
+                                        for _, desc in ipairs(tool:GetDescendants()) do
+                                            if desc:IsA("TextLabel") then
+                                                local tLower = string.lower(desc.Text)
+                                                for _, mName in ipairs(MutationsList) do
+                                                    if string.find(tLower, string.lower(mName)) then
+                                                        cardMutation = string.lower(mName)
+                                                        break
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                    if cardMutation == "" then cardMutation = "normal" end
                                     
                                     local matchRarity = (next(getgenv().GiftSelectedRarities) == nil) or getgenv().GiftSelectedRarities[cardRarity]
                                     local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
+                                    
+                                    if not matchRarity and next(getgenv().GiftSelectedRarities) ~= nil then
+                                        for rKey, _ in pairs(getgenv().GiftSelectedRarities) do
+                                            if string.find(toolNameLower, rKey) then
+                                                matchRarity = true
+                                                break
+                                            end
+                                        end
+                                    end
+                                    
+                                    if not matchMutation and next(getgenv().GiftSelectedMutations) ~= nil then
+                                        for mKey, _ in pairs(getgenv().GiftSelectedMutations) do
+                                            if string.find(toolNameLower, mKey) or string.find(cardMutation, mKey) then
+                                                matchMutation = true
+                                                break
+                                            end
+                                        end
+                                    end
                                     
                                     if matchRarity and matchMutation then
                                         hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
@@ -1458,3 +1534,4 @@ WindUI:Notify({
     Content = "loaded successfully",
     Duration = 5,
 })
+```[cite: 2]
