@@ -213,7 +213,8 @@ local function GetAllInventorySummary()
                         end
                     end
                 end
-                if groupKey == "" then groupKey = toolName end
+                if groupKey == "" then groupKey = toolName
+                end
                 
                 local mutation = mutationAttr
                 if mutation == "" or mutation == "Normal" then
@@ -706,25 +707,37 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     local isBoxOrPack = string.find(toolNameLower, "box") or string.find(toolNameLower, "pack") or rAttrLower == "box" or rAttrLower == "pack" or tool:GetAttribute("BoxValue") ~= nil
                                     if isBoxOrPack then continue end
                                     
-                                    -- [อัปเดตระบบอ่านชื่อการ์ด / Rarity / Mutation แบบครอบคลุม]
-                                    local combinedText = toolNameLower .. " " .. rAttrLower
+                                    -- [ระบบเช็คและบล็อก Evolution เด็ดขาดถ้าไม่ได้เลือก Evolved ไว้]
+                                    local isEvolutionCard = string.find(toolNameLower, "evolution") or string.find(toolNameLower, "evolved")
+                                    local combinedTextForCheck = toolNameLower .. " " .. rAttrLower
                                     for _, desc in ipairs(tool:GetDescendants()) do
                                         if desc:IsA("TextLabel") then
-                                            combinedText = combinedText .. " " .. string.lower(desc.Text)
+                                            local tText = string.lower(desc.Text)
+                                            combinedTextForCheck = combinedTextForCheck .. " " .. tText
+                                            if string.find(tText, "evolution") or string.find(tText, "evolved") then
+                                                isEvolutionCard = true
+                                            end
                                         end
+                                    end
+                                    
+                                    local evoSelected = getgenv().GiftSelectedRarities["evolution"] or getgenv().GiftSelectedRarities["evolved"]
+                                    if isEvolutionCard and not evoSelected then
+                                        continue -- ข้ามการ์ด Evolution ทันทีถ้าไม่ได้ติ๊กเลือกไว้
                                     end
                                     
                                     local cardRarity = ""
                                     for _, rName in ipairs(RaritiesList) do
-                                        if string.find(combinedText, string.lower(rName)) then
-                                            cardRarity = string.lower(rName)
-                                            break
+                                        if rName ~= "Evolved" and rName ~= "Evolution" then
+                                            if string.find(combinedTextForCheck, string.lower(rName)) then
+                                                cardRarity = string.lower(rName)
+                                                break
+                                            end
                                         end
                                     end
                                     
                                     local cardMutation = "normal"
                                     for _, mName in ipairs(MutationsList) do
-                                        if string.find(combinedText, string.lower(mName)) then
+                                        if string.find(combinedTextForCheck, string.lower(mName)) then
                                             cardMutation = string.lower(mName)
                                             break
                                         end
@@ -733,7 +746,7 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     local matchRarity = (next(getgenv().GiftSelectedRarities) == nil) or getgenv().GiftSelectedRarities[cardRarity]
                                     if not matchRarity and next(getgenv().GiftSelectedRarities) ~= nil then
                                         for rKey, _ in pairs(getgenv().GiftSelectedRarities) do
-                                            if string.find(combinedText, rKey) then
+                                            if string.find(combinedTextForCheck, rKey) then
                                                 matchRarity = true
                                                 break
                                             end
@@ -743,7 +756,7 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
                                     if not matchMutation and next(getgenv().GiftSelectedMutations) ~= nil then
                                         for mKey, _ in pairs(getgenv().GiftSelectedMutations) do
-                                            if string.find(combinedText, mKey) then
+                                            if string.find(combinedTextForCheck, mKey) then
                                                 matchMutation = true
                                                 break
                                             end
