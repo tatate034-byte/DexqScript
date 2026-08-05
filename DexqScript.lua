@@ -37,24 +37,31 @@ local FilterConfig = {
 local function getSpawnPackClickDetector()
     local player = game:GetService("Players").LocalPlayer
     local plotNum = player:FindFirstChild("PlotNumber") and player.PlotNumber.Value or 0
+    
     if plotNum ~= 0 then
-        local plotFolder = workspace:FindFirstChild("MAP") 
-            and workspace.MAP:FindFirstChild("Plots") 
-            and workspace.MAP.Plots:FindFirstChild(tostring(plotNum))
+        local map = workspace:FindFirstChild("MAP")
+        local plots = map and map:FindFirstChild("Plots")
+        local plotFolder = plots and plots:FindFirstChild(tostring(plotNum))
         
         if plotFolder and plotFolder:FindFirstChild("Plot_N0") then
             for _, v in ipairs(plotFolder.Plot_N0:GetDescendants()) do
-                if v:IsA("ClickDetector") and v.Parent.Name == "ButtonPart" then
+                if v:IsA("ClickDetector") and v.Parent and v.Parent.Name == "ButtonPart" then
                     return v
                 end
             end
         end
     end
-    for _, desc in ipairs(workspace:GetDescendants()) do
-        if desc:IsA("ClickDetector") and desc.Parent and desc.Parent.Name == "ButtonPart" and desc.Parent.Parent and desc.Parent.Parent.Name == "Plot_N0" then
-            return desc
+
+    for _, desc in ipairs(workspace:GetChildren()) do
+        if desc.Name == "MAP" or desc.Name == "Plots" then
+            for _, v in ipairs(desc:GetDescendants()) do
+                if v:IsA("ClickDetector") and v.Parent and v.Parent.Name == "ButtonPart" then
+                    return v
+                end
+            end
         end
     end
+    
     return nil
 end
 
@@ -67,7 +74,7 @@ local AutoSpawnToggle = MainTab:Toggle({
             task.spawn(function()
                 local cd = getSpawnPackClickDetector()
                 if not cd then
-                    WindUI:Notify({ Title = "Error", Content = "Spawn Pack button not found!", Duration = 3 })
+                    WindUI:Notify({ Title = "Error", Content = "Spawn Pack button not found! (Try resetting or wait for load)", Duration = 3 })
                     getgenv().AutoSpawnPack = false
                     return
                 end
@@ -544,10 +551,6 @@ local AutoSellBoxToggle = MainTab:Toggle({
     end
 })
 
--- ==============================================================
--- 🚀 SEPARATED AUTO GIFT SYSTEM (Cards & Packs Split UI)
--- ==============================================================
-
 getgenv().GiftTargetPlayer = ""
 getgenv().MaxGiftLimit = "0"
 getgenv().CurrentGiftedCount = 0
@@ -610,7 +613,6 @@ GiftLimitInput = MainTab:Input({
     end
 })
 
--- 🎴 SECTION 1: AUTO GIFT CARDS UI
 MainTab:Paragraph({ Title = "--- Card Gifting Settings ---", Content = "Configure specific card rarity and mutation to gift." })
 
 getgenv().GiftSelectedRarities = {}
@@ -699,67 +701,49 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     if not getgenv().AutoGiftCardsState then break end
                                     if not tool:IsA("Tool") then continue end
                                     
-                                    -- 🛡️ Block Packs and Boxes strictly from being treated as cards
                                     local toolNameLower = string.lower(tool.Name)
                                     local rAttrLower = string.lower(tool:GetAttribute("Rarity") or "")
                                     local isBoxOrPack = string.find(toolNameLower, "box") or string.find(toolNameLower, "pack") or rAttrLower == "box" or rAttrLower == "pack" or tool:GetAttribute("BoxValue") ~= nil
                                     if isBoxOrPack then continue end
                                     
-                                    local cardRarity = rAttrLower
-                                    if cardRarity == "" and tool:FindFirstChild("Rarity") and tool.Rarity:IsA("StringValue") then
-                                        cardRarity = string.lower(tool.Rarity.Value)
-                                    end
-                                    if cardRarity == "" then
-                                        for _, rName in ipairs(RaritiesList) do
-                                            if string.find(toolNameLower, string.lower(rName)) then
-                                                cardRarity = string.lower(rName)
-                                                break
-                                            end
+                                    -- [อัปเดตระบบอ่านชื่อการ์ด / Rarity / Mutation แบบครอบคลุม]
+                                    local combinedText = toolNameLower .. " " .. rAttrLower
+                                    for _, desc in ipairs(tool:GetDescendants()) do
+                                        if desc:IsA("TextLabel") then
+                                            combinedText = combinedText .. " " .. string.lower(desc.Text)
                                         end
                                     end
                                     
-                                    local cardMutation = string.lower(tool:GetAttribute("Mutation") or "")
-                                    if cardMutation == "" and tool:FindFirstChild("Mutation") and tool.Mutation:IsA("StringValue") then
-                                        cardMutation = string.lower(tool.Mutation.Value)
-                                    end
-                                    if cardMutation == "" then
-                                        for _, mName in ipairs(MutationsList) do
-                                            if string.find(toolNameLower, string.lower(mName)) then
-                                                cardMutation = string.lower(mName)
-                                                break
-                                            end
+                                    local cardRarity = ""
+                                    for _, rName in ipairs(RaritiesList) do
+                                        if string.find(combinedText, string.lower(rName)) then
+                                            cardRarity = string.lower(rName)
+                                            break
                                         end
                                     end
-                                    if cardMutation == "" or cardMutation == "normal" then
-                                        for _, desc in ipairs(tool:GetDescendants()) do
-                                            if desc:IsA("TextLabel") then
-                                                local tLower = string.lower(desc.Text)
-                                                for _, mName in ipairs(MutationsList) do
-                                                    if string.find(tLower, string.lower(mName)) then
-                                                        cardMutation = string.lower(mName)
-                                                        break
-                                                    end
-                                                end
-                                            end
+                                    
+                                    local cardMutation = "normal"
+                                    for _, mName in ipairs(MutationsList) do
+                                        if string.find(combinedText, string.lower(mName)) then
+                                            cardMutation = string.lower(mName)
+                                            break
                                         end
                                     end
-                                    if cardMutation == "" then cardMutation = "normal" end
                                     
                                     local matchRarity = (next(getgenv().GiftSelectedRarities) == nil) or getgenv().GiftSelectedRarities[cardRarity]
-                                    local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
-                                    
                                     if not matchRarity and next(getgenv().GiftSelectedRarities) ~= nil then
                                         for rKey, _ in pairs(getgenv().GiftSelectedRarities) do
-                                            if string.find(toolNameLower, rKey) then
+                                            if string.find(combinedText, rKey) then
                                                 matchRarity = true
                                                 break
                                             end
                                         end
                                     end
                                     
+                                    local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
                                     if not matchMutation and next(getgenv().GiftSelectedMutations) ~= nil then
                                         for mKey, _ in pairs(getgenv().GiftSelectedMutations) do
-                                            if string.find(toolNameLower, mKey) or string.find(cardMutation, mKey) then
+                                            if string.find(combinedText, mKey) then
                                                 matchMutation = true
                                                 break
                                             end
@@ -813,23 +797,7 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                         end
                                         
                                         getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
-                                        
-                                        local maxWait = 2.5
-                                        local elapsedWait = 0
-                                        while getgenv().AutoGiftCardsState and elapsedWait < maxWait do
-                                            task.wait(0.1)
-                                            elapsedWait = elapsedWait + 0.1
-                                            
-                                            local stillExists = false
-                                            if tool.Parent == backpack or (character and tool.Parent == character) then
-                                                stillExists = true
-                                            end
-                                            
-                                            if not stillExists then
-                                                break
-                                            end
-                                        end
-                                        
+                                        task.wait(2.5)
                                         break
                                     end
                                 end
@@ -843,7 +811,6 @@ local AutoGiftCardsToggle = MainTab:Toggle({
     end
 })
 
--- 📦 SECTION 2: AUTO GIFT PACKS UI (Using exact same Rarity system & strict Pack-only filter)
 MainTab:Paragraph({ Title = "--- Pack Gifting Settings ---", Content = "Configure specific pack rarities to gift (Packs only)." })
 
 getgenv().GiftSelectedPacks = {}
@@ -910,7 +877,6 @@ local AutoGiftPacksToggle = MainTab:Toggle({
                                     if not getgenv().AutoGiftPacksState then break end
                                     if not tool:IsA("Tool") then continue end
                                     
-                                    -- 🛡️ Strict filter: Must be a PACK (ignore normal cards and boxes)
                                     local toolNameLower = string.lower(tool.Name)
                                     local rAttrLower = string.lower(tool:GetAttribute("Rarity") or "")
                                     local isPack = string.find(toolNameLower, "pack") or rAttrLower == "pack"
@@ -975,23 +941,7 @@ local AutoGiftPacksToggle = MainTab:Toggle({
                                         end
                                         
                                         getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
-                                        
-                                        local maxWait = 2.5
-                                        local elapsedWait = 0
-                                        while getgenv().AutoGiftPacksState and elapsedWait < maxWait do
-                                            task.wait(0.1)
-                                            elapsedWait = elapsedWait + 0.1
-                                            
-                                            local stillExists = false
-                                            if tool.Parent == backpack or (character and tool.Parent == character) then
-                                                stillExists = true
-                                            end
-                                            
-                                            if not stillExists then
-                                                break
-                                            end
-                                        end
-                                        
+                                        task.wait(2.5)
                                         break
                                     end
                                 end
@@ -1469,7 +1419,7 @@ ConfigDropdown = MiscTab:Dropdown({
 })
 
 MiscTab:Button({
-    Title = "Refresh Config List",
+    Title = "Refresh Config Library",
     Callback = function()
         if ConfigDropdown and ConfigDropdown.Refresh then
             pcall(function() ConfigDropdown:Refresh(GetConfigs()) end)
