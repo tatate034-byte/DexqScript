@@ -107,12 +107,12 @@ local AutoSpawnToggle = MainTab:Toggle({
 })
 
 local RaritiesList = {
-    "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Divine",
-    "Transcendent", "Shadow", "Emperor", "Demon", "Manga", "Celestial", "Heavenly",
-    "Corrupted", "Striker", "Sacred", "Paradox", "Founder", "Evolved", "Magic", "Oni",
-    "Chaos", "Ruin", "Reborn", "Beast", "Nordic", "Hunter", "Soul", "Swordsman",
-    "Gamer", "Revenge", "Chainsaw", "Eternity", "Academy", "Dynasty", "Grail",
-    "Mystery", "VIP", "Event", "Limited", "Conquest", "Blaze", "Devour"
+    "Conquest", "Blaze", "Devour", "Common", "Uncommon", "Rare", "Epic", "Legendary", 
+    "Mythic", "Secret", "Divine", "Transcendent", "Shadow", "Emperor", "Demon", 
+    "Manga", "Celestial", "Heavenly", "Corrupted", "Striker", "Sacred", "Paradox", 
+    "Founder", "Evolved", "Magic", "Oni", "Chaos", "Ruin", "Reborn", "Beast", 
+    "Nordic", "Hunter", "Soul", "Swordsman", "Gamer", "Revenge", "Chainsaw", 
+    "Eternity", "Academy", "Dynasty", "Grail", "Mystery", "VIP", "Event", "Limited"
 }
 
 getgenv().SelectedRarities = {}
@@ -206,15 +206,13 @@ local function GetAllInventorySummary()
                     mutation = item.Mutation.Value
                 end
                 
-                if not string.find(string.lower(item.Name), "box") and groupKey ~= "Box" then
-                    if not inventory[groupKey] then
-                        inventory[groupKey] = {}
-                    end
-                    if not inventory[groupKey][mutation] then
-                        inventory[groupKey][mutation] = 0
-                    end
-                    inventory[groupKey][mutation] = inventory[groupKey][mutation] + 1
+                if not inventory[groupKey] then
+                    inventory[groupKey] = {}
                 end
+                if not inventory[groupKey][mutation] then
+                    inventory[groupKey][mutation] = 0
+                end
+                inventory[groupKey][mutation] = inventory[groupKey][mutation] + 1
             end
         end
     end
@@ -519,7 +517,7 @@ local AutoSellBoxToggle = MainTab:Toggle({
 })
 
 -- ==============================================================
--- 🚀 AUTO GIFT SYSTEM (Fast Warp/Equip + Dynamic Wait on Accept)
+-- 🚀 SEPARATED AUTO GIFT SYSTEM (Cards & Boxes Split UI)
 -- ==============================================================
 
 getgenv().GiftTargetPlayer = ""
@@ -584,9 +582,12 @@ GiftLimitInput = MainTab:Input({
     end
 })
 
+-- 🎴 SECTION 1: AUTO GIFT CARDS UI
+MainTab:Paragraph({ Title = "--- Card Gifting Settings ---", Content = "Configure specific card rarity and mutation to gift." })
+
 getgenv().GiftSelectedRarities = {}
 local GiftRarityDropdown = MainTab:Dropdown({
-    Title = "Select Rarities to Gift",
+    Title = "Select Card Rarities to Gift",
     Multi = true,
     Values = RaritiesList,
     Value = {},
@@ -608,7 +609,7 @@ local GiftRarityDropdown = MainTab:Dropdown({
 
 getgenv().GiftSelectedMutations = {}
 local GiftMutationDropdown = MainTab:Dropdown({
-    Title = "Select Mutations to Gift",
+    Title = "Select Card Mutations to Gift",
     Multi = true,
     Values = MutationsList,
     Value = {},
@@ -628,15 +629,15 @@ local GiftMutationDropdown = MainTab:Dropdown({
     end
 })
 
-getgenv().AutoGiftCards = false
-local AutoGiftToggle = MainTab:Toggle({
-    Title = "Auto Gift from Backpack & Warp",
+getgenv().AutoGiftCardsState = false
+local AutoGiftCardsToggle = MainTab:Toggle({
+    Title = "Auto Gift Cards Only",
     Callback = function(state)
-        getgenv().AutoGiftCards = state
+        getgenv().AutoGiftCardsState = state
         if state then
             getgenv().CurrentGiftedCount = 0
             task.spawn(function()
-                while getgenv().AutoGiftCards do
+                while getgenv().AutoGiftCardsState do
                     local targetName = getgenv().GiftTargetPlayer
                     
                     local maxLimitText = tostring(getgenv().MaxGiftLimit or "0"):gsub("%s+", "")
@@ -644,9 +645,9 @@ local AutoGiftToggle = MainTab:Toggle({
                     if maxLimit == nil then maxLimit = 0 end
                     
                     if maxLimit > 0 and getgenv().CurrentGiftedCount >= maxLimit then
-                        WindUI:Notify({ Title = "Auto Gift", Content = "Reached max gift limit (" .. maxLimit .. "). Stopping...", Duration = 3 })
-                        getgenv().AutoGiftCards = false
-                        AutoGiftToggle:SetValue(false)
+                        WindUI:Notify({ Title = "Auto Gift Cards", Content = "Reached max gift limit (" .. maxLimit .. "). Stopping...", Duration = 3 })
+                        getgenv().AutoGiftCardsState = false
+                        AutoGiftCardsToggle:SetValue(false)
                         break
                     end
                     
@@ -667,8 +668,11 @@ local AutoGiftToggle = MainTab:Toggle({
                             
                             if hrp and targetHrp and backpack then
                                 for _, tool in ipairs(backpack:GetChildren()) do
-                                    if not getgenv().AutoGiftCards then break end
+                                    if not getgenv().AutoGiftCardsState then break end
                                     if not tool:IsA("Tool") then continue end
+                                    
+                                    local isBox = string.find(string.lower(tool.Name), "box") or string.lower(tool:GetAttribute("Rarity") or "") == "box"
+                                    if isBox then continue end
                                     
                                     local cardRarity = string.lower(tool:GetAttribute("Rarity") or "")
                                     local cardMutation = string.lower(tool:GetAttribute("Mutation") or "normal")
@@ -679,8 +683,6 @@ local AutoGiftToggle = MainTab:Toggle({
                                     if cardMutation == "normal" and tool:FindFirstChild("Mutation") and tool.Mutation:IsA("StringValue") then
                                         cardMutation = string.lower(tool.Mutation.Value)
                                     end
-                                    
-                                    if string.find(string.lower(tool.Name), "box") or cardRarity == "box" then continue end
                                     
                                     local matchRarity = (next(getgenv().GiftSelectedRarities) == nil) or getgenv().GiftSelectedRarities[cardRarity]
                                     local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
@@ -735,7 +737,7 @@ local AutoGiftToggle = MainTab:Toggle({
                                         
                                         local maxWait = 2.5
                                         local elapsedWait = 0
-                                        while getgenv().AutoGiftCards and elapsedWait < maxWait do
+                                        while getgenv().AutoGiftCardsState and elapsedWait < maxWait do
                                             task.wait(0.1)
                                             elapsedWait = elapsedWait + 0.1
                                             
@@ -743,18 +745,710 @@ local AutoGiftToggle = MainTab:Toggle({
                                             if tool.Parent == backpack or (character and tool.Parent == character) then
                                                 stillExists = true
                                             end
+                                            
                                             if not stillExists then
                                                 break
                                             end
                                         end
+                                        
+                                        break
                                     end
                                 end
                             end
                         end)
                     end
-                    task.wait(0.5)
+                    task.wait(0.2)
                 end
             end)
         end
     end
+})
+
+-- 📦 SECTION 2: AUTO GIFT BOXES UI
+MainTab:Paragraph({ Title = "--- Box/Pack Gifting Settings ---", Content = "Configure specific box/pack types to gift." })
+
+local BoxesList = {"Standard Box", "Epic Box", "Legendary Box", "Mythic Box", "Pack", "All Boxes"}
+getgenv().GiftSelectedBoxes = {}
+local GiftBoxDropdown = MainTab:Dropdown({
+    Title = "Select Boxes/Packs to Gift",
+    Multi = true,
+    Values = BoxesList,
+    Value = {},
+    Callback = function(value)
+        getgenv().GiftSelectedBoxes = {}
+        if type(value) == "table" then
+            for k, v in pairs(value) do
+                if type(k) == "number" then
+                    getgenv().GiftSelectedBoxes[string.lower(tostring(v))] = true
+                else
+                    getgenv().GiftSelectedBoxes[string.lower(tostring(k))] = v
+                end
+            end
+        elseif type(value) == "string" then
+            getgenv().GiftSelectedBoxes[string.lower(value)] = true
+        end
+    end
+})
+
+getgenv().AutoGiftBoxesState = false
+local AutoGiftBoxesToggle = MainTab:Toggle({
+    Title = "Auto Gift Boxes/Packs Only",
+    Callback = function(state)
+        getgenv().AutoGiftBoxesState = state
+        if state then
+            getgenv().CurrentGiftedCount = 0
+            task.spawn(function()
+                while getgenv().AutoGiftBoxesState do
+                    local targetName = getgenv().GiftTargetPlayer
+                    
+                    local maxLimitText = tostring(getgenv().MaxGiftLimit or "0"):gsub("%s+", "")
+                    local maxLimit = tonumber(maxLimitText)
+                    if maxLimit == nil then maxLimit = 0 end
+                    
+                    if maxLimit > 0 and getgenv().CurrentGiftedCount >= maxLimit then
+                        WindUI:Notify({ Title = "Auto Gift Boxes", Content = "Reached max gift limit (" .. maxLimit .. "). Stopping...", Duration = 3 })
+                        getgenv().AutoGiftBoxesState = false
+                        AutoGiftBoxesToggle:SetValue(false)
+                        break
+                    end
+                    
+                    if targetName ~= "" and targetName ~= "No other players" then
+                        pcall(function()
+                            local player = Players.LocalPlayer
+                            local character = player.Character
+                            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                            local backpack = player:FindFirstChild("Backpack")
+                            
+                            if targetName == player.Name then return end
+                            
+                            local targetPlayer = Players:FindFirstChild(targetName)
+                            if not targetPlayer or targetPlayer == player then return end
+                            
+                            local targetChar = targetPlayer.Character
+                            local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+                            
+                            if hrp and targetHrp and backpack then
+                                for _, tool in ipairs(backpack:GetChildren()) do
+                                    if not getgenv().AutoGiftBoxesState then break end
+                                    if not tool:IsA("Tool") then continue end
+                                    
+                                    local isBox = string.find(string.lower(tool.Name), "box") or string.lower(tool:GetAttribute("Rarity") or "") == "box" or string.find(string.lower(tool.Name), "pack")
+                                    if not isBox then continue end
+                                    
+                                    local toolNameLower = string.lower(tool.Name)
+                                    local matchBox = (next(getgenv().GiftSelectedBoxes) == nil) or getgenv().GiftSelectedBoxes["all boxes"]
+                                    if not matchBox then
+                                        for bKey, _ in pairs(getgenv().GiftSelectedBoxes) do
+                                            if string.find(toolNameLower, bKey) then
+                                                matchBox = true
+                                                break
+                                            end
+                                        end
+                                    end
+                                    
+                                    if matchBox then
+                                        hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
+                                        task.wait(0.1) 
+                                        
+                                        if character and character:FindFirstChild("Humanoid") then
+                                            character.Humanoid:EquipTool(tool)
+                                            task.wait(0.15) 
+                                        end
+                                        
+                                        local fired = false
+                                        local function triggerPrompt(prompt)
+                                            if prompt and prompt:IsA("ProximityPrompt") then
+                                                pcall(function()
+                                                    prompt.RequiresLineOfSight = false
+                                                    prompt.MaxActivationDistance = 99999
+                                                    prompt.HoldDuration = 0
+                                                    
+                                                    if fireproximityprompt then
+                                                        fireproximityprompt(prompt)
+                                                    else
+                                                        prompt:InputHoldBegin()
+                                                        prompt:InputHoldEnd()
+                                                    end
+                                                end)
+                                                fired = true
+                                            end
+                                        end
+
+                                        if targetChar then
+                                            for _, desc in ipairs(targetChar:GetDescendants()) do
+                                                if desc:IsA("ProximityPrompt") then
+                                                    triggerPrompt(desc)
+                                                    task.wait(0.05)
+                                                end
+                                            end
+                                        end
+
+                                        if not fired then
+                                            for _, desc in ipairs(tool:GetDescendants()) do
+                                                if desc:IsA("ProximityPrompt") then
+                                                    triggerPrompt(desc)
+                                                    task.wait(0.05)
+                                                end
+                                            end
+                                        end
+                                        
+                                        getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
+                                        
+                                        local maxWait = 2.5
+                                        local elapsedWait = 0
+                                        while getgenv().AutoGiftBoxesState and elapsedWait < maxWait do
+                                            task.wait(0.1)
+                                            elapsedWait = elapsedWait + 0.1
+                                            
+                                            local stillExists = false
+                                            if tool.Parent == backpack or (character and tool.Parent == character) then
+                                                stillExists = true
+                                            end
+                                            
+                                            if not stillExists then
+                                                break
+                                            end
+                                        end
+                                        
+                                        break
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+})
+
+getgenv().AutoAcceptGift = false
+local AutoAcceptToggle = MainTab:Toggle({
+    Title = "Auto Accept Gift",
+    Callback = function(state)
+        getgenv().AutoAcceptGift = state
+        if state then
+            task.spawn(function()
+                while getgenv().AutoAcceptGift do
+                    pcall(function()
+                        local player = Players.LocalPlayer
+                        local playerGui = player:FindFirstChild("PlayerGui")
+                        if playerGui then
+                            for _, gui in ipairs(playerGui:GetDescendants()) do
+                                if (gui:IsA("TextButton") or gui:IsA("ImageButton")) then
+                                    local txt = ""
+                                    for _, sub in ipairs(gui:GetDescendants()) do
+                                        if sub:IsA("TextLabel") or sub:IsA("TextButton") then
+                                            txt = txt .. " " .. sub.Text
+                                        end
+                                    end
+                                    if gui:IsA("TextButton") then
+                                        txt = txt .. " " .. gui.Text
+                                    end
+                                    
+                                    txt = string.lower(txt)
+                                    if string.find(txt, "accept") then
+                                        if gui.AbsoluteSize.X > 0 and gui.Visible then
+                                            if firesignal then
+                                                pcall(function() firesignal(gui.MouseButton1Click) end)
+                                                pcall(function() firesignal(gui.Activated) end)
+                                            end
+                                            
+                                            if getconnections then
+                                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do
+                                                    pcall(function() conn:Fire() end)
+                                                end
+                                            end
+                                            
+                                            task.wait(0.2)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+})
+
+local InventoryTab = Window:Tab({
+    Title = "Inventory",
+    Icon = "solar:box-bold",
+})
+
+local InventoryParagraph = InventoryTab:Paragraph({
+    Title = "Current Inventory Summary",
+    Content = "Click the button below to scan and update your backpack contents."
+})
+
+InventoryTab:Button({
+    Title = "Refresh Inventory Status",
+    Callback = function()
+        pcall(function()
+            local summary = GetAllInventorySummary()
+            InventoryParagraph:SetDesc(summary)
+            WindUI:Notify({ Title = "Inventory", Content = "Refreshed backpack items!", Duration = 2 })
+        end)
+    end
+})
+
+local AutoCarrySlider = MainTab:Slider({
+    Title = "Auto Carry Delay (Minutes)",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 30,
+        Default = getgenv().AutoCarryDelay or 5
+    },
+    Callback = function(value)
+        getgenv().AutoCarryDelay = value
+    end
+})
+
+local VirtualUser = game:GetService("VirtualUser")
+local antiAfkConnection
+
+getgenv().AntiAfkState = false
+local AntiAfkToggle = MainTab:Toggle({
+    Title = "Anti AFK",
+    Callback = function(state)
+        getgenv().AntiAfkState = state
+        if state then
+            antiAfkConnection = Players.LocalPlayer.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        else
+            if antiAfkConnection then
+                antiAfkConnection:Disconnect()
+                antiAfkConnection = nil
+            end
+        end
+    end
+})
+
+local function isLuckBoostActive()
+    local PlayerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not PlayerGui then return true end 
+    local InfoGui = PlayerGui:FindFirstChild("InfoGui")
+    if not InfoGui then return true end
+    local Boost = InfoGui:FindFirstChild("Boost")
+    if not Boost then return true end
+    local PotionLuck = Boost:FindFirstChild("PotionLuck")
+    if not PotionLuck then return false end 
+    
+    if not PotionLuck.Visible then return false end
+    
+    for _, v in ipairs(PotionLuck:GetDescendants()) do
+        if v:IsA("TextLabel") then
+            if v.Text == "00:00:00" or v.Text == "00:00" then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+local function getPotionAmount(potionId)
+    local PlayerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not PlayerGui then return 0 end
+    local GuiMid = PlayerGui:FindFirstChild("GuiMid")
+    if not GuiMid then return 0 end
+    local Items = GuiMid:FindFirstChild("Items")
+    if not Items then return 0 end
+    local ItemsFrame = Items:FindFirstChild("ItemsFrame")
+    if not ItemsFrame then return 0 end
+    local ScrollingFrameItems = ItemsFrame:FindFirstChild("ScrollingFrameItems")
+    if not ScrollingFrameItems then return 0 end
+    
+    local ObjectFrame = ScrollingFrameItems:FindFirstChild("ObjectFrame_" .. potionId)
+    if not ObjectFrame then return 0 end
+    
+    if not ObjectFrame.Visible then return 0 end
+    
+    local ObjectButton = ObjectFrame:FindFirstChild("ObjectButton")
+    if not ObjectButton then return 0 end
+    
+    local Quantity = ObjectButton:FindFirstChild("Quantity")
+    if not Quantity or not Quantity:IsA("TextLabel") then return 0 end
+    
+    local amountStr = Quantity.Text:gsub("x", "")
+    return tonumber(amountStr) or 0
+end
+
+getgenv().AutoUseLuck = false
+local AutoUseLuckToggle = MainTab:Toggle({
+    Title = "Auto Use Luck Potion",
+    Value = getgenv().AutoUseLuck,
+    Callback = function(state)
+        getgenv().AutoUseLuck = state
+        if state then
+            task.spawn(function()
+                local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5)
+                local ItemsRE = Remotes and Remotes:WaitForChild("ItemsRE", 5)
+                if not ItemsRE then return end
+                
+                while getgenv().AutoUseLuck do
+                    if not isLuckBoostActive() then
+                        local amt1 = getPotionAmount("LuckPotion1")
+                        local amt2 = getPotionAmount("LuckPotion2")
+                        local amt3 = getPotionAmount("LuckPotion3")
+                        
+                        if WindUI and WindUI.Notify then
+                            WindUI:Notify({
+                                Title = "Luck Inventory Check",
+                                Content = string.format("Remaining - III: %d | II: %d | I: %d", amt3, amt2, amt1),
+                                Duration = 3
+                            })
+                        end
+                        
+                        if amt3 > 0 then
+                            ItemsRE:FireServer("UseItem", {ItemId = "LuckPotion3", Amount = math.min(5, amt3)})
+                        elseif amt2 > 0 then
+                            ItemsRE:FireServer("UseItem", {ItemId = "LuckPotion2", Amount = math.min(5, amt2)})
+                        elseif amt1 > 0 then
+                            ItemsRE:FireServer("UseItem", {ItemId = "LuckPotion1", Amount = math.min(5, amt1)})
+                        end
+                    end
+                    task.wait(2)
+                end
+            end)
+        end
+    end
+})
+
+local MiscTab = Window:Tab({
+    Title = "Misc",
+    Icon = "solar:settings-bold",
+})
+
+local HttpService = game:GetService("HttpService")
+local ConfigFolder = "Dexq_AnimeCardFarm"
+
+if not isfolder(ConfigFolder) then
+    pcall(makefolder, ConfigFolder)
+end
+
+local function GetConfigs()
+    local configs = {}
+    if isfolder(ConfigFolder) then
+        for _, file in ipairs(listfiles(ConfigFolder)) do
+            if file:sub(-5) == ".json" and not file:find("_MainConfig.json") then
+                local name = file:match("([^/\\]+)%.json$")
+                if name then table.insert(configs, name) end
+            end
+        end
+    end
+    return configs
+end
+
+local ConfigData = {
+    Autoload = "",
+}
+
+local function SaveMainConfig()
+    if writefile then
+        pcall(function()
+            writefile(ConfigFolder .. "/_MainConfig.json", HttpService:JSONEncode(ConfigData))
+        end)
+    end
+end
+
+local function LoadMainConfig()
+    if isfile and isfile(ConfigFolder .. "/_MainConfig.json") then
+        local s, r = pcall(function()
+            return HttpService:JSONDecode(readfile(ConfigFolder .. "/_MainConfig.json"))
+        end)
+        if s and type(r) == "table" then
+            ConfigData = r
+        end
+    end
+end
+LoadMainConfig()
+
+getgenv().DiscordWebhook = ""
+local WebhookInput = MiscTab:Input({
+    Title = "Discord Webhook URL",
+    PlaceholderText = "https://discord.com/api/webhooks/...",
+    Callback = function(text)
+        getgenv().DiscordWebhook = text
+    end
+})
+
+MiscTab:Keybind({
+    Title = "Toggle UI Key",
+    Key = "RightControl",
+    Callback = function()
+        pcall(function()
+            local toggled = false
+            if Window and type(Window.Toggle) == "function" then
+                Window:Toggle()
+                toggled = true
+            end
+            if not toggled then
+                for _, v in ipairs(game:GetService("CoreGui"):GetChildren()) do
+                    if v:IsA("ScreenGui") and v:FindFirstChild("Main") and v.Main:IsA("Frame") then
+                        local titleLabel = v.Main:FindFirstChild("Topbar", true)
+                        if titleLabel or v.Name == "WindUI" or v.Name == "DexqUI" then
+                            v.Enabled = not v.Enabled
+                        end
+                    end
+                end
+            end
+        end)
+    end
+})
+
+local function SaveConfig(name)
+    local data = {
+        Rarities = getgenv().SelectedRarities or {},
+        Mutations = getgenv().SelectedMutations or {},
+        AutoSpawn = getgenv().AutoSpawnPack or false,
+        AutoBuy = getgenv().AutoBuyCards or false,
+        AutoCarry = getgenv().AutoCarry or false,
+        AutoSellBox = getgenv().AutoSellBox or false,
+        AutoCarryDelay = getgenv().AutoCarryDelay or 5,
+        AntiAfk = getgenv().AntiAfkState or false,
+        AutoUseLuck = getgenv().AutoUseLuck or false,
+        Webhook = getgenv().DiscordWebhook or "",
+        GiftTarget = getgenv().GiftTargetPlayer or {},
+        GiftRarities = getgenv().GiftSelectedRarities or {},
+        GiftMutations = getgenv().GiftSelectedMutations or {},
+        GiftBoxes = getgenv().GiftSelectedBoxes or {},
+        AutoGiftCards = getgenv().AutoGiftCardsState or false,
+        AutoGiftBoxes = getgenv().AutoGiftBoxesState or false,
+        AutoAccept = getgenv().AutoAcceptGift or false,
+        MaxGiftLimit = getgenv().MaxGiftLimit or "0"
+    }
+    if writefile then
+        pcall(function()
+            writefile(ConfigFolder .. "/" .. name .. ".json", HttpService:JSONEncode(data))
+            WindUI:Notify({ Title = "Config", Content = "Saved config: " .. name, Duration = 3 })
+        end)
+    end
+end
+
+local function LoadConfig(name)
+    if isfile and isfile(ConfigFolder .. "/" .. name .. ".json") then
+        local s, data = pcall(function()
+            return HttpService:JSONDecode(readfile(ConfigFolder .. "/" .. name .. ".json"))
+        end)
+        if s and type(data) == "table" then
+            getgenv().SelectedRarities = data.Rarities or {}
+            getgenv().SelectedMutations = data.Mutations or {}
+            
+            getgenv().GiftTargetPlayer = data.GiftTarget or ""
+            getgenv().GiftSelectedRarities = data.GiftRarities or {}
+            getgenv().GiftSelectedMutations = data.GiftMutations or {}
+            getgenv().GiftSelectedBoxes = data.GiftBoxes or {}
+            getgenv().MaxGiftLimit = data.MaxGiftLimit or "0"
+            
+            pcall(function()
+                if GiftPlayerDropdown and GiftPlayerDropdown.SetValue then
+                    GiftPlayerDropdown:SetValue(getgenv().GiftTargetPlayer)
+                end
+                if GiftLimitInput and GiftLimitInput.SetValue then
+                    GiftLimitInput:SetValue(tostring(getgenv().MaxGiftLimit))
+                end
+            end)
+            
+            local function safeToggleSet(toggleObj, val)
+                if not toggleObj then return end
+                pcall(function() toggleObj:SetValue(val) end)
+                pcall(function() toggleObj:Set(val) end)
+                pcall(function() toggleObj.Value = val end)
+            end
+            
+            safeToggleSet(AutoSpawnToggle, data.AutoSpawn or false)
+            safeToggleSet(AutoBuyToggle, data.AutoBuy or false)
+            safeToggleSet(AutoCarryToggle, data.AutoCarry or false)
+            safeToggleSet(AutoSellBoxToggle, data.AutoSellBox or false)
+            safeToggleSet(AutoGiftCardsToggle, data.AutoGiftCards or false)
+            safeToggleSet(AutoGiftBoxesToggle, data.AutoGiftBoxes or false)
+            safeToggleSet(AutoAcceptToggle, data.AutoAccept or false)
+            
+            if data.AutoCarryDelay then
+                getgenv().AutoCarryDelay = data.AutoCarryDelay
+                pcall(function() AutoCarrySlider:SetValue(data.AutoCarryDelay) end)
+                pcall(function() AutoCarrySlider:Set(data.AutoCarryDelay) end)
+            end
+            safeToggleSet(AntiAfkToggle, data.AntiAfk or false)
+            safeToggleSet(AutoUseLuckToggle, data.AutoUseLuck or false)
+            
+            getgenv().DiscordWebhook = data.Webhook or ""
+            pcall(function() WebhookInput:SetValue(getgenv().DiscordWebhook) end)
+            
+            if RarityDropdown then
+                local dictR = {}
+                for _, v in ipairs(RaritiesList) do
+                    if getgenv().SelectedRarities[string.lower(v)] then
+                        dictR[v] = true
+                    end
+                end
+                pcall(function() RarityDropdown:SetValue(dictR) end)
+            end
+            
+            if MutationDropdown then
+                local dictM = {}
+                for _, v in ipairs(MutationsList) do
+                    if getgenv().SelectedMutations[string.lower(v)] then
+                        dictM[v] = true
+                    end
+                end
+                pcall(function() MutationDropdown:SetValue(dictM) end)
+            end
+            
+            if GiftRarityDropdown then
+                local gArrR = {}
+                for _, v in ipairs(RaritiesList) do
+                    if getgenv().GiftSelectedRarities[string.lower(v)] then
+                        table.insert(gArrR, v)
+                    end
+                end
+                pcall(function() GiftRarityDropdown:SetValue(gArrR) end)
+            end
+
+            if GiftMutationDropdown then
+                local gArrM = {}
+                for _, v in ipairs(MutationsList) do
+                    if getgenv().GiftSelectedMutations[string.lower(v)] then
+                        table.insert(gArrM, v)
+                    end
+                end
+                pcall(function() GiftMutationDropdown:SetValue(gArrM) end)
+            end
+
+            if GiftBoxDropdown then
+                local gArrB = {}
+                for _, v in ipairs(BoxesList) do
+                    if getgenv().GiftSelectedBoxes[string.lower(v)] then
+                        table.insert(gArrB, v)
+                    end
+                end
+                pcall(function() GiftBoxDropdown:SetValue(gArrB) end)
+            end
+            
+            WindUI:Notify({ Title = "Config", Content = "Loaded config: " .. name, Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Config", Content = "Failed to load config: " .. name, Duration = 3 })
+        end
+    end
+end
+
+local ConfigNameInput = ""
+MiscTab:Input({
+    Title = "Config Name",
+    PlaceholderText = "Config name...",
+    Callback = function(text)
+        ConfigNameInput = text
+    end
+})
+
+local ConfigDropdown
+
+MiscTab:Button({
+    Title = "Save Config",
+    Callback = function()
+        if ConfigNameInput ~= "" then
+            SaveConfig(ConfigNameInput)
+            if ConfigDropdown and ConfigDropdown.Refresh then
+                pcall(function() ConfigDropdown:Refresh(GetConfigs()) end)
+            end
+        else
+            WindUI:Notify({ Title = "Config", Content = "Please enter a config name", Duration = 3 })
+        end
+    end
+})
+
+local ConfigList = GetConfigs()
+local SelectedConfig = ConfigData.Autoload
+
+ConfigDropdown = MiscTab:Dropdown({
+    Title = "Saved Configs",
+    Values = ConfigList,
+    Value = ConfigData.Autoload,
+    Callback = function(value)
+        if type(value) == "table" then
+            for k, v in pairs(value) do
+                if type(k) == "number" then
+                    SelectedConfig = v
+                else
+                    SelectedConfig = k
+                end
+            end
+        else
+            SelectedConfig = value
+        end
+    end
+})
+
+MiscTab:Button({
+    Title = "Refresh Config List",
+    Callback = function()
+        if ConfigDropdown and ConfigDropdown.Refresh then
+            pcall(function() ConfigDropdown:Refresh(GetConfigs()) end)
+        end
+        WindUI:Notify({ Title = "Config", Content = "Config list refreshed", Duration = 3 })
+    end
+})
+
+MiscTab:Button({
+    Title = "Load Selected Config",
+    Callback = function()
+        if SelectedConfig and SelectedConfig ~= "" then
+            LoadConfig(SelectedConfig)
+        end
+    end
+})
+
+MiscTab:Button({
+    Title = "Delete Selected Config",
+    Callback = function()
+        if SelectedConfig and SelectedConfig ~= "" then
+            if isfile and isfile(ConfigFolder .. "/" .. SelectedConfig .. ".json") then
+                pcall(delfile, ConfigFolder .. "/" .. SelectedConfig .. ".json")
+                if ConfigData.Autoload == SelectedConfig then
+                    ConfigData.Autoload = ""
+                    SaveMainConfig()
+                end
+                if ConfigDropdown and ConfigDropdown.Refresh then
+                    pcall(function() ConfigDropdown:Refresh(GetConfigs()) end)
+                end
+                WindUI:Notify({ Title = "Config", Content = "Deleted config", Duration = 3 })
+                SelectedConfig = ""
+            else
+                WindUI:Notify({ Title = "Config", Content = "Config not found!", Duration = 3 })
+            end
+        end
+    end
+})
+
+MiscTab:Toggle({
+    Title = "Auto Load Selected Config",
+    Value = (ConfigData.Autoload ~= ""),
+    Callback = function(state)
+        if state then
+            ConfigData.Autoload = SelectedConfig
+        else
+            ConfigData.Autoload = ""
+        end
+        SaveMainConfig()
+    end
+})
+
+if ConfigData.Autoload ~= "" then
+    task.spawn(function()
+        task.wait(1)
+        LoadConfig(ConfigData.Autoload)
+    end)
+end
+
+WindUI:Notify({
+    Title = "Dexq Loaded",
+    Content = "loaded successfully",
+    Duration = 5,
 })
