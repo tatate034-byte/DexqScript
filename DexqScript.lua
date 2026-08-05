@@ -517,7 +517,7 @@ local AutoSellBoxToggle = MainTab:Toggle({
 })
 
 -- ==============================================================
--- 🚀 SEPARATED AUTO GIFT SYSTEM (Cards & Boxes Split UI)
+-- 🚀 SEPARATED AUTO GIFT SYSTEM (Cards & Packs Split UI)
 -- ==============================================================
 
 getgenv().GiftTargetPlayer = ""
@@ -671,7 +671,7 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     if not getgenv().AutoGiftCardsState then break end
                                     if not tool:IsA("Tool") then continue end
                                     
-                                    -- 🛡️ [FIXED] Block Boxes AND Packs strictly from being treated as cards
+                                    -- 🛡️ Block Packs and Boxes strictly from being treated as cards
                                     local toolNameLower = string.lower(tool.Name)
                                     local rAttrLower = string.lower(tool:GetAttribute("Rarity") or "")
                                     local isBoxOrPack = string.find(toolNameLower, "box") or string.find(toolNameLower, "pack") or rAttrLower == "box" or rAttrLower == "pack" or tool:GetAttribute("BoxValue") ~= nil
@@ -767,45 +767,40 @@ local AutoGiftCardsToggle = MainTab:Toggle({
     end
 })
 
--- 📦 SECTION 2: AUTO GIFT BOXES/PACKS UI (Updated with Multi-Selection List)
-MainTab:Paragraph({ Title = "--- Box/Pack Gifting Settings ---", Content = "Configure specific boxes, packs, or rarities to gift." })
+-- 📦 SECTION 2: AUTO GIFT PACKS UI (Using exact same Rarity system & strict Pack-only filter)
+MainTab:Paragraph({ Title = "--- Pack Gifting Settings ---", Content = "Configure specific pack rarities to gift (Packs only)." })
 
-local BoxRaritiesList = {
-    "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Divine", 
-    "Standard Box", "Epic Box", "Legendary Box", "Mythic Box", "Pack", "All Boxes"
-}
-
-getgenv().GiftSelectedBoxes = {}
-local GiftBoxDropdown = MainTab:Dropdown({
-    Title = "Select Boxes/Packs/Rarities to Gift",
+getgenv().GiftSelectedPacks = {}
+local GiftPackRarityDropdown = MainTab:Dropdown({
+    Title = "Select Pack Rarities to Gift",
     Multi = true,
-    Values = BoxRaritiesList,
+    Values = RaritiesList,
     Value = {},
     Callback = function(value)
-        getgenv().GiftSelectedBoxes = {}
+        getgenv().GiftSelectedPacks = {}
         if type(value) == "table" then
             for k, v in pairs(value) do
                 if type(k) == "number" then
-                    getgenv().GiftSelectedBoxes[string.lower(tostring(v))] = true
+                    getgenv().GiftSelectedPacks[string.lower(tostring(v))] = true
                 else
-                    getgenv().GiftSelectedBoxes[string.lower(tostring(k))] = v
+                    getgenv().GiftSelectedPacks[string.lower(tostring(k))] = v
                 end
             end
         elseif type(value) == "string" then
-            getgenv().GiftSelectedBoxes[string.lower(value)] = true
+            getgenv().GiftSelectedPacks[string.lower(value)] = true
         end
     end
 })
 
-getgenv().AutoGiftBoxesState = false
-local AutoGiftBoxesToggle = MainTab:Toggle({
-    Title = "Auto Gift Boxes/Packs Only",
+getgenv().AutoGiftPacksState = false
+local AutoGiftPacksToggle = MainTab:Toggle({
+    Title = "Auto Gift Packs Only",
     Callback = function(state)
-        getgenv().AutoGiftBoxesState = state
+        getgenv().AutoGiftPacksState = state
         if state then
             getgenv().CurrentGiftedCount = 0
             task.spawn(function()
-                while getgenv().AutoGiftBoxesState do
+                while getgenv().AutoGiftPacksState do
                     local targetName = getgenv().GiftTargetPlayer
                     
                     local maxLimitText = tostring(getgenv().MaxGiftLimit or "0"):gsub("%s+", "")
@@ -813,9 +808,9 @@ local AutoGiftBoxesToggle = MainTab:Toggle({
                     if maxLimit == nil then maxLimit = 0 end
                     
                     if maxLimit > 0 and getgenv().CurrentGiftedCount >= maxLimit then
-                        WindUI:Notify({ Title = "Auto Gift Boxes", Content = "Reached max gift limit (" .. maxLimit .. "). Stopping...", Duration = 3 })
-                        getgenv().AutoGiftBoxesState = false
-                        AutoGiftBoxesToggle:SetValue(false)
+                        WindUI:Notify({ Title = "Auto Gift Packs", Content = "Reached max gift limit (" .. maxLimit .. "). Stopping...", Duration = 3 })
+                        getgenv().AutoGiftPacksState = false
+                        AutoGiftPacksToggle:SetValue(false)
                         break
                     end
                     
@@ -836,29 +831,28 @@ local AutoGiftBoxesToggle = MainTab:Toggle({
                             
                             if hrp and targetHrp and backpack then
                                 for _, tool in ipairs(backpack:GetChildren()) do
-                                    if not getgenv().AutoGiftBoxesState then break end
+                                    if not getgenv().AutoGiftPacksState then break end
                                     if not tool:IsA("Tool") then continue end
                                     
-                                    local isBox = string.find(string.lower(tool.Name), "box") or string.lower(tool:GetAttribute("Rarity") or "") == "box" or string.find(string.lower(tool.Name), "pack") or tool:GetAttribute("BoxValue") ~= nil
-                                    if not isBox then continue end
-                                    
+                                    -- 🛡️ Strict filter: Must be a PACK (ignore normal cards and boxes)
                                     local toolNameLower = string.lower(tool.Name)
-                                    local boxRarityAttr = string.lower(tool:GetAttribute("Rarity") or "")
-                                    if boxRarityAttr == "" and tool:FindFirstChild("Rarity") and tool.Rarity:IsA("StringValue") then
-                                        boxRarityAttr = string.lower(tool.Rarity.Value)
-                                    end
+                                    local rAttrLower = string.lower(tool:GetAttribute("Rarity") or "")
+                                    local isPack = string.find(toolNameLower, "pack") or rAttrLower == "pack"
+                                    if not isPack then continue end
                                     
-                                    local matchBox = (next(getgenv().GiftSelectedBoxes) == nil) or getgenv().GiftSelectedBoxes["all boxes"]
-                                    if not matchBox then
-                                        for bKey, _ in pairs(getgenv().GiftSelectedBoxes) do
-                                            if string.find(toolNameLower, bKey) or string.find(boxRarityAttr, bKey) then
-                                                matchBox = true
+                                    local packRarity = rAttrLower
+                                    if packRarity == "" then
+                                        for _, rName in ipairs(RaritiesList) do
+                                            if string.find(toolNameLower, string.lower(rName)) then
+                                                packRarity = string.lower(rName)
                                                 break
                                             end
                                         end
                                     end
                                     
-                                    if matchBox then
+                                    local matchPack = (next(getgenv().GiftSelectedPacks) == nil) or getgenv().GiftSelectedPacks[packRarity]
+                                    
+                                    if matchPack then
                                         hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
                                         task.wait(0.1) 
                                         
@@ -908,7 +902,7 @@ local AutoGiftBoxesToggle = MainTab:Toggle({
                                         
                                         local maxWait = 2.5
                                         local elapsedWait = 0
-                                        while getgenv().AutoGiftBoxesState and elapsedWait < maxWait do
+                                        while getgenv().AutoGiftPacksState and elapsedWait < maxWait do
                                             task.wait(0.1)
                                             elapsedWait = elapsedWait + 0.1
                                             
@@ -1230,9 +1224,9 @@ local function SaveConfig(name)
         GiftTarget = getgenv().GiftTargetPlayer or {},
         GiftRarities = getgenv().GiftSelectedRarities or {},
         GiftMutations = getgenv().GiftSelectedMutations or {},
-        GiftBoxes = getgenv().GiftSelectedBoxes or {},
+        GiftPacks = getgenv().GiftSelectedPacks or {},
         AutoGiftCards = getgenv().AutoGiftCardsState or false,
-        AutoGiftBoxes = getgenv().AutoGiftBoxesState or false,
+        AutoGiftPacks = getgenv().AutoGiftPacksState or false,
         AutoAccept = getgenv().AutoAcceptGift or false,
         MaxGiftLimit = getgenv().MaxGiftLimit or "0"
     }
@@ -1256,7 +1250,7 @@ local function LoadConfig(name)
             getgenv().GiftTargetPlayer = data.GiftTarget or ""
             getgenv().GiftSelectedRarities = data.GiftRarities or {}
             getgenv().GiftSelectedMutations = data.GiftMutations or {}
-            getgenv().GiftSelectedBoxes = data.GiftBoxes or {}
+            getgenv().GiftSelectedPacks = data.GiftPacks or {}
             getgenv().MaxGiftLimit = data.MaxGiftLimit or "0"
             
             pcall(function()
@@ -1280,7 +1274,7 @@ local function LoadConfig(name)
             safeToggleSet(AutoCarryToggle, data.AutoCarry or false)
             safeToggleSet(AutoSellBoxToggle, data.AutoSellBox or false)
             safeToggleSet(AutoGiftCardsToggle, data.AutoGiftCards or false)
-            safeToggleSet(AutoGiftBoxesToggle, data.AutoGiftBoxes or false)
+            safeToggleSet(AutoGiftPacksToggle, data.AutoGiftPacks or false)
             safeToggleSet(AutoAcceptToggle, data.AutoAccept or false)
             
             if data.AutoCarryDelay then
@@ -1334,14 +1328,14 @@ local function LoadConfig(name)
                 pcall(function() GiftMutationDropdown:SetValue(gArrM) end)
             end
 
-            if GiftBoxDropdown then
-                local gArrB = {}
-                for _, v in ipairs(BoxRaritiesList) do
-                    if getgenv().GiftSelectedBoxes[string.lower(v)] then
-                        table.insert(gArrB, v)
+            if GiftPackRarityDropdown then
+                local gArrP = {}
+                for _, v in ipairs(RaritiesList) do
+                    if getgenv().GiftSelectedPacks[string.lower(v)] then
+                        table.insert(gArrP, v)
                     end
                 end
-                pcall(function() GiftBoxDropdown:SetValue(gArrB) end)
+                pcall(function() GiftPackRarityDropdown:SetValue(gArrP) end)
             end
             
             WindUI:Notify({ Title = "Config", Content = "Loaded config: " .. name, Duration = 3 })
