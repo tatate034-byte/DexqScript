@@ -112,7 +112,7 @@ local RaritiesList = {
     "Corrupted", "Striker", "Sacred", "Paradox", "Founder", "Evolved", "Magic", "Oni",
     "Chaos", "Ruin", "Reborn", "Beast", "Nordic", "Hunter", "Soul", "Swordsman",
     "Gamer", "Revenge", "Chainsaw", "Eternity", "Academy", "Dynasty", "Grail",
-    "Mystery", "VIP", "Event", "Limited", "Blaze", "Devour", "Conquest"
+    "Mystery", "VIP", "Event", "Limited"
 }
 
 getgenv().SelectedRarities = {}
@@ -519,7 +519,7 @@ local AutoSellBoxToggle = MainTab:Toggle({
 })
 
 -- ==============================================================
--- 🚀 AUTO GIFT SYSTEM (Fast Warp/Equip + Dynamic Wait on Accept)
+-- 🚀 AUTO GIFT SYSTEM (Supports Packs & Individual Cards with Fast Warp)
 -- ==============================================================
 
 getgenv().GiftTargetPlayer = ""
@@ -630,7 +630,7 @@ local GiftMutationDropdown = MainTab:Dropdown({
 
 getgenv().AutoGiftCards = false
 local AutoGiftToggle = MainTab:Toggle({
-    Title = "Auto Gift from Backpack & Warp",
+    Title = "Auto Gift Packs & Cards with Warp",
     Callback = function(state)
         getgenv().AutoGiftCards = state
         if state then
@@ -670,6 +670,8 @@ local AutoGiftToggle = MainTab:Toggle({
                                     if not getgenv().AutoGiftCards then break end
                                     if not tool:IsA("Tool") then continue end
                                     
+                                    if string.find(string.lower(tool.Name), "box") or string.find(string.lower(tool.Name), "???") then continue end
+                                    
                                     local cardRarity = string.lower(tool:GetAttribute("Rarity") or "")
                                     local cardMutation = string.lower(tool:GetAttribute("Mutation") or "normal")
                                     
@@ -680,17 +682,13 @@ local AutoGiftToggle = MainTab:Toggle({
                                         cardMutation = string.lower(tool.Mutation.Value)
                                     end
                                     
-                                    if string.find(string.lower(tool.Name), "box") or cardRarity == "box" then continue end
-                                    
                                     local matchRarity = (next(getgenv().GiftSelectedRarities) == nil) or getgenv().GiftSelectedRarities[cardRarity]
                                     local matchMutation = (next(getgenv().GiftSelectedMutations) == nil) or getgenv().GiftSelectedMutations[cardMutation]
                                     
                                     if matchRarity and matchMutation then
-                                        -- วาปไวขึ้น
                                         hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
                                         task.wait(0.1) 
                                         
-                                        -- หยิบไอเทมไวขึ้น
                                         if character and character:FindFirstChild("Humanoid") then
                                             character.Humanoid:EquipTool(tool)
                                             task.wait(0.15) 
@@ -735,7 +733,6 @@ local AutoGiftToggle = MainTab:Toggle({
                                         
                                         getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
                                         
-                                        -- ระบบรอแบบ Dynamic: เช็คว่าถ้าไอเทมถูกส่งออกจากตัวแล้ว (หรืออีกฝ่ายกดรับแล้ว) ให้ข้ามไปชิ้นถัดไปได้ทันที
                                         local maxWait = 2.5
                                         local elapsedWait = 0
                                         while getgenv().AutoGiftCards and elapsedWait < maxWait do
@@ -1164,9 +1161,9 @@ local function LoadConfig(name)
                 pcall(function() GiftMutationDropdown:SetValue(gArrM) end)
             end
             
-            WindUI:Notify({ Title = "Config", Content = "Loaded config: " .. name, Duration = 3 })
+            WindUI:Notify({ Title = "Config", Content = "Loaded config: " + name, Duration = 3 })
         else
-            WindUI:Notify({ Title = "Config", Content = "Failed to load config: " .. name, Duration = 3 })
+            WindUI:Notify({ Title = "Config", Content = "Failed to load config: " + name, Duration = 3 })
         end
     end
 end
