@@ -660,6 +660,9 @@ local GiftMutationDropdown = MainTab:Dropdown({
     end
 })
 
+-- ==========================================
+-- Auto Gift Cards Only (แก้ไขปัญหาติดค้างใบสุดท้าย + คูลดาวน์ 5 วินาที)
+-- ==========================================
 getgenv().AutoGiftCardsState = false
 local AutoGiftCardsToggle = MainTab:Toggle({
     Title = "Auto Gift Cards Only",
@@ -808,15 +811,22 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                             end
                                         end
                                         
-                                        getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
-                                        task.wait(2.5)
-                                        break
+                                        -- หน่วงเวลารอคูลดาวน์เกม 5.2 วินาที
+                                        task.wait(5.2)
+                                        
+                                        -- เช็คซ้ำว่าการ์ดออกไปหรือยัง ถ้ายังอยู่ให้ข้าม/ลองลูปใหม่ใบเดิมโดยไม่เพิ่มโควตาค้าง
+                                        if tool.Parent == backpack then
+                                            break
+                                        else
+                                            getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
+                                            break
+                                        end
                                     end
                                 end
                             end
                         end)
                     end
-                    task.wait(0.2)
+                    task.wait(0.5)
                 end
             end)
         end
@@ -847,7 +857,6 @@ local GiftPackRarityDropdown = MainTab:Dropdown({
     end
 })
 
--- ย้าย Mutation ของ Pack มาไว้ติดกับ Rarity ทันที เพื่อป้องกันการหลุดขอบจอ
 getgenv().GiftSelectedPackMutations = {}
 local GiftPackMutationDropdown = MainTab:Dropdown({
     Title = "Select Pack Mutations to Gift",
@@ -870,6 +879,9 @@ local GiftPackMutationDropdown = MainTab:Dropdown({
     end
 })
 
+-- ==========================================
+-- Auto Gift Packs Only (แก้ไขปัญหาติดค้างใบสุดท้าย + คูลดาวน์ 5 วินาที)
+-- ==========================================
 getgenv().AutoGiftPacksState = false
 local AutoGiftPacksToggle = MainTab:Toggle({
     Title = "Auto Gift Packs Only",
@@ -989,9 +1001,16 @@ local AutoGiftPacksToggle = MainTab:Toggle({
                                             end
                                         end
                                         
-                                        getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
-                                        task.wait(2.5)
-                                        break
+                                        -- หน่วงเวลารอคูลดาวน์เกม 5.2 วินาที
+                                        task.wait(5.2)
+                                        
+                                        -- เช็คซ้ำว่าแพ็กออกไปหรือยัง ถ้ายังอยู่ให้ลูปส่งใหม่ใบเดิม
+                                        if tool.Parent == backpack then
+                                            break
+                                        else
+                                            getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
+                                            break
+                                        end
                                     end
                                 end
                             end
