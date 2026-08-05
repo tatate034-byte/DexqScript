@@ -671,8 +671,11 @@ local AutoGiftCardsToggle = MainTab:Toggle({
                                     if not getgenv().AutoGiftCardsState then break end
                                     if not tool:IsA("Tool") then continue end
                                     
-                                    local isBox = string.find(string.lower(tool.Name), "box") or string.lower(tool:GetAttribute("Rarity") or "") == "box"
-                                    if isBox then continue end
+                                    -- 🛡️ [FIXED] Block Boxes AND Packs strictly from being treated as cards
+                                    local toolNameLower = string.lower(tool.Name)
+                                    local rAttrLower = string.lower(tool:GetAttribute("Rarity") or "")
+                                    local isBoxOrPack = string.find(toolNameLower, "box") or string.find(toolNameLower, "pack") or rAttrLower == "box" or rAttrLower == "pack" or tool:GetAttribute("BoxValue") ~= nil
+                                    if isBoxOrPack then continue end
                                     
                                     local cardRarity = string.lower(tool:GetAttribute("Rarity") or "")
                                     local cardMutation = string.lower(tool:GetAttribute("Mutation") or "normal")
@@ -764,15 +767,19 @@ local AutoGiftCardsToggle = MainTab:Toggle({
     end
 })
 
--- 📦 SECTION 2: AUTO GIFT BOXES UI
-MainTab:Paragraph({ Title = "--- Box/Pack Gifting Settings ---", Content = "Configure specific box/pack types to gift." })
+-- 📦 SECTION 2: AUTO GIFT BOXES/PACKS UI (Updated with Multi-Selection List)
+MainTab:Paragraph({ Title = "--- Box/Pack Gifting Settings ---", Content = "Configure specific boxes, packs, or rarities to gift." })
 
-local BoxesList = {"Standard Box", "Epic Box", "Legendary Box", "Mythic Box", "Pack", "All Boxes"}
+local BoxRaritiesList = {
+    "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Divine", 
+    "Standard Box", "Epic Box", "Legendary Box", "Mythic Box", "Pack", "All Boxes"
+}
+
 getgenv().GiftSelectedBoxes = {}
 local GiftBoxDropdown = MainTab:Dropdown({
-    Title = "Select Boxes/Packs to Gift",
+    Title = "Select Boxes/Packs/Rarities to Gift",
     Multi = true,
-    Values = BoxesList,
+    Values = BoxRaritiesList,
     Value = {},
     Callback = function(value)
         getgenv().GiftSelectedBoxes = {}
@@ -832,14 +839,19 @@ local AutoGiftBoxesToggle = MainTab:Toggle({
                                     if not getgenv().AutoGiftBoxesState then break end
                                     if not tool:IsA("Tool") then continue end
                                     
-                                    local isBox = string.find(string.lower(tool.Name), "box") or string.lower(tool:GetAttribute("Rarity") or "") == "box" or string.find(string.lower(tool.Name), "pack")
+                                    local isBox = string.find(string.lower(tool.Name), "box") or string.lower(tool:GetAttribute("Rarity") or "") == "box" or string.find(string.lower(tool.Name), "pack") or tool:GetAttribute("BoxValue") ~= nil
                                     if not isBox then continue end
                                     
                                     local toolNameLower = string.lower(tool.Name)
+                                    local boxRarityAttr = string.lower(tool:GetAttribute("Rarity") or "")
+                                    if boxRarityAttr == "" and tool:FindFirstChild("Rarity") and tool.Rarity:IsA("StringValue") then
+                                        boxRarityAttr = string.lower(tool.Rarity.Value)
+                                    end
+                                    
                                     local matchBox = (next(getgenv().GiftSelectedBoxes) == nil) or getgenv().GiftSelectedBoxes["all boxes"]
                                     if not matchBox then
                                         for bKey, _ in pairs(getgenv().GiftSelectedBoxes) do
-                                            if string.find(toolNameLower, bKey) then
+                                            if string.find(toolNameLower, bKey) or string.find(boxRarityAttr, bKey) then
                                                 matchBox = true
                                                 break
                                             end
@@ -1324,7 +1336,7 @@ local function LoadConfig(name)
 
             if GiftBoxDropdown then
                 local gArrB = {}
-                for _, v in ipairs(BoxesList) do
+                for _, v in ipairs(BoxRaritiesList) do
                     if getgenv().GiftSelectedBoxes[string.lower(v)] then
                         table.insert(gArrB, v)
                     end
