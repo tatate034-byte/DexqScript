@@ -847,6 +847,7 @@ local GiftPackRarityDropdown = MainTab:Dropdown({
     end
 })
 
+-- ย้าย Mutation ของ Pack มาไว้ติดกับ Rarity ทันที เพื่อป้องกันการหลุดขอบจอ
 getgenv().GiftSelectedPackMutations = {}
 local GiftPackMutationDropdown = MainTab:Dropdown({
     Title = "Select Pack Mutations to Gift",
