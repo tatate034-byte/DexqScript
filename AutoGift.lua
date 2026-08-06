@@ -1,8 +1,7 @@
 -- ==========================================
--- AUTO GIFT MAIN SCRIPT (Upload to GitHub)
+-- AUTO GIFT MAIN SCRIPT (Optimized & Stable)
 -- ==========================================
 
--- ตรวจสอบและตั้งค่าเริ่มต้นเผื่อกรณีไม่ได้ประกาศจากด้านนอก
 _G.AutoGiftConfig = _G.AutoGiftConfig or {
     TargetPlayer = "DefaultTarget",
     MaxLimit = 0,
@@ -50,9 +49,13 @@ task.spawn(function()
                 local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
                 
                 if hrp and targetHrp and backpack then
+                    -- ตารางเก็บรายการที่พยายามส่งไปแล้วในรอบนี้ เพื่อป้องกันการวนซ้ำชิ้นเดิมถ้ามีปัญหา
+                    local attemptedTools = {}
+                    
                     for _, tool in ipairs(backpack:GetChildren()) do
                         if not getgenv().AutoGiftRunning then break end
                         if not tool:IsA("Tool") then continue end
+                        if attemptedTools[tool] then continue end -- ข้ามชิ้นที่เคยลองแล้วในรอบนี้
                         
                         local toolName = tool.Name
                         local toolNameLower = string.lower(toolName)
@@ -75,14 +78,22 @@ task.spawn(function()
                         end
                         
                         if shouldSend then
-                            hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
-                            task.wait(0.1)
+                            attemptedTools[tool] = true -- ทำเครื่องหมายว่าชิ้นนี้กำลังดำเนินการ
                             
+                            -- เทเลพอร์ตไปใกล้เป้าหมาย
+                            hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
+                            task.wait(0.15)
+                            
+                            -- ถือไอเทม
                             if character:FindFirstChild("Humanoid") then
-                                character.Humanoid:EquipTool(tool)
-                                task.wait(0.15)
+                                local humanoid = character.Humanoid
+                                pcall(function()
+                                    humanoid:EquipTool(tool)
+                                end)
+                                task.wait(0.2)
                             end
                             
+                            -- กด ProximityPrompt ของเป้าหมาย
                             local function triggerPrompt(prompt)
                                 if prompt and prompt:IsA("ProximityPrompt") then
                                     pcall(function()
@@ -108,11 +119,14 @@ task.spawn(function()
                                 end
                             end
                             
-                            task.wait(5.2)
+                            -- รอเวลาคูลดาวน์ระบบเกม (ปรับยืดหยุ่นให้เสถียรขึ้น)
+                            task.wait(5.0)
                             
-                            if tool.Parent ~= backpack then
+                            -- ตรวจสอบว่าไอเทมถูกส่งออกไปจริงไหม (เช็คว่าหลุดจาก Backpack หรือถูกทำลาย)
+                            if not tool.Parent or tool.Parent ~= backpack then
                                 getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
-                                break
+                                task.wait(0.5) -- พักเล็กน้อยหลังส่งสำเร็จ
+                                break -- หลุดลูปย่อยเพื่ออัปเดตสถานะกระเป๋าใหม่
                             end
                         end
                     end
