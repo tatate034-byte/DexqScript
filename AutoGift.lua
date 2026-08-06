@@ -1,5 +1,5 @@
 -- ==========================================
--- AUTO GIFT MAIN SCRIPT (Optimized & Stable)
+-- AUTO GIFT MAIN SCRIPT (Safe Nil Check)
 -- ==========================================
 
 _G.AutoGiftConfig = _G.AutoGiftConfig or {
@@ -38,24 +38,25 @@ task.spawn(function()
             break
         end
         
-        if targetName and targetName ~= "" and targetName ~= LocalPlayer.Name then
+        if targetName and targetName ~= "" and LocalPlayer and targetName ~= LocalPlayer.Name then
             pcall(function()
                 local character = LocalPlayer.Character
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
                 local backpack = LocalPlayer:FindFirstChild("Backpack")
                 
                 local targetPlayer = Players:FindFirstChild(targetName)
-                local targetChar = targetPlayer and targetPlayer.Character
+                if not targetPlayer then return end -- ป้องกัน Error ถ้ายังไม่เจอตัวผู้เล่น
+                
+                local targetChar = targetPlayer.Character
                 local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
                 
                 if hrp and targetHrp and backpack then
-                    -- ตารางเก็บรายการที่พยายามส่งไปแล้วในรอบนี้ เพื่อป้องกันการวนซ้ำชิ้นเดิมถ้ามีปัญหา
                     local attemptedTools = {}
                     
                     for _, tool in ipairs(backpack:GetChildren()) do
                         if not getgenv().AutoGiftRunning then break end
                         if not tool:IsA("Tool") then continue end
-                        if attemptedTools[tool] then continue end -- ข้ามชิ้นที่เคยลองแล้วในรอบนี้
+                        if attemptedTools[tool] then continue end
                         
                         local toolName = tool.Name
                         local toolNameLower = string.lower(toolName)
@@ -64,7 +65,6 @@ task.spawn(function()
                         
                         local shouldSend = false
                         
-                        -- เงื่อนไขเช็ค "การ์ด"
                         if Config.SendCards and (Config.Cards[toolName] or Config.Cards[rAttrLower]) then
                             local matchMutation = (next(Config.CardMutations) == nil) or Config.CardMutations[mutationAttr] or string.find(toolNameLower, mutationAttr)
                             if matchMutation then
@@ -72,19 +72,16 @@ task.spawn(function()
                             end
                         end
                         
-                        -- เงื่อนไขเช็ค "แพ็ค"
                         if Config.SendPacks and Config.Packs[toolName] then
                             shouldSend = true
                         end
                         
                         if shouldSend then
-                            attemptedTools[tool] = true -- ทำเครื่องหมายว่าชิ้นนี้กำลังดำเนินการ
+                            attemptedTools[tool] = true
                             
-                            -- เทเลพอร์ตไปใกล้เป้าหมาย
                             hrp.CFrame = targetHrp.CFrame + Vector3.new(0, 0, 2)
                             task.wait(0.15)
                             
-                            -- ถือไอเทม
                             if character:FindFirstChild("Humanoid") then
                                 local humanoid = character.Humanoid
                                 pcall(function()
@@ -93,7 +90,6 @@ task.spawn(function()
                                 task.wait(0.2)
                             end
                             
-                            -- กด ProximityPrompt ของเป้าหมาย
                             local function triggerPrompt(prompt)
                                 if prompt and prompt:IsA("ProximityPrompt") then
                                     pcall(function()
@@ -119,14 +115,12 @@ task.spawn(function()
                                 end
                             end
                             
-                            -- รอเวลาคูลดาวน์ระบบเกม (ปรับยืดหยุ่นให้เสถียรขึ้น)
                             task.wait(5.0)
                             
-                            -- ตรวจสอบว่าไอเทมถูกส่งออกไปจริงไหม (เช็คว่าหลุดจาก Backpack หรือถูกทำลาย)
                             if not tool.Parent or tool.Parent ~= backpack then
                                 getgenv().CurrentGiftedCount = getgenv().CurrentGiftedCount + 1
-                                task.wait(0.5) -- พักเล็กน้อยหลังส่งสำเร็จ
-                                break -- หลุดลูปย่อยเพื่ออัปเดตสถานะกระเป๋าใหม่
+                                task.wait(0.5)
+                                break
                             end
                         end
                     end
