@@ -119,7 +119,7 @@ local RaritiesList = {
     "Manga", "Celestial", "Heavenly", "Corrupted", "Striker", "Sacred", "Paradox", 
     "Founder", "Evolved", "Magic", "Oni", "Chaos", "Ruin", "Reborn", "Beast", 
     "Nordic", "Hunter", "Soul", "Swordsman", "Gamer", "Revenge", "Chainsaw", 
-    "Eternity", "Academy", "Dynasty", "Grail", "Mystery", "VIP", "Event", "Limited"
+    "Eternity", "Academy", "Dynasty", "Grail", "Mystery", "VIP", "Event", "Limited", "Raven", "Arcane", "Nightfall"
 }
 
 getgenv().SelectedRarities = {}
