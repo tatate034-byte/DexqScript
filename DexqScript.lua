@@ -120,6 +120,7 @@ local RaritiesList = {
     "Founder", "Evolved", "Magic", "Oni", "Chaos", "Ruin", "Reborn", "Beast", 
     "Nordic", "Hunter", "Soul", "Swordsman", "Gamer", "Revenge", "Chainsaw", 
     "Eternity", "Academy", "Dynasty", "Grail", "Mystery", "VIP", "Event", "Limited", "Raven", "Arcane", "Nightfall", "Evolution"
+    "Smash", "Emblem", "Chrono"
 }
 
 getgenv().SelectedRarities = {}
