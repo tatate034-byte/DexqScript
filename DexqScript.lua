@@ -119,7 +119,7 @@ local RaritiesList = {
     "Manga", "Celestial", "Heavenly", "Corrupted", "Striker", "Sacred", "Paradox", 
     "Founder", "Evolved", "Magic", "Oni", "Chaos", "Ruin", "Reborn", "Beast", 
     "Nordic", "Hunter", "Soul", "Swordsman", "Gamer", "Revenge", "Chainsaw", 
-    "Eternity", "Academy", "Dynasty", "Grail", "Mystery", "VIP", "Event", "Limited", "Raven", "Arcane", "Nightfall", "Evolution","Smash", "Emblem", "Chrono"
+    "Eternity", "Academy", "Dynasty", "Grail", "Mystery", "VIP", "Event", "Limited", "Raven", "Arcane", "Nightfall", "Evolution","Smash", "Emblem", "Chrono","Dunk", "Blossom", "Zenith"
 }
 
 getgenv().SelectedRarities = {}
@@ -147,7 +147,7 @@ local RarityDropdown = MainTab:Dropdown({
 
 local MutationsList = {
     "Normal", "Golden", "Diamond", "Venomous", "Rainbow", "Sakura", "Candy",
-    "Blessed", "Radioactive", "Glitch", "Starfallen", "Admin", "Unknow"
+    "Blessed", "Radioactive", "Glitch", "Starfallen", "Admin", "Unknow", "Nullstar"
 }
 
 getgenv().SelectedMutations = {}
