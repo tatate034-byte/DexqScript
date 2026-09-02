@@ -147,7 +147,7 @@ local RarityDropdown = MainTab:Dropdown({
 
 local MutationsList = {
     "Normal", "Golden", "Diamond", "Venomous", "Rainbow", "Sakura", "Candy",
-    "Blessed", "Radioactive", "Glitch", "Starfallen", "Admin", "Unknow", "Nullstar"
+    "Blessed", "Radioactive", "Glitch", "Starfallen", "Admin", "Unknown", "Nullstar"
 }
 
 getgenv().SelectedMutations = {}
